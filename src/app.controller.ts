@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Res, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Res,
+  Query,
+  BadRequestException,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { AppService } from './app.service';
 import { VideoService } from './video.service';
@@ -18,7 +26,7 @@ export class AppController {
   @Post('video/info')
   async getVideoInfo(@Body('url') url: string) {
     if (!url) {
-      throw new Error('Video URL is required');
+      throw new BadRequestException('Video URL is required');
     }
     return this.videoService.getInfo(url);
   }
@@ -37,16 +45,18 @@ export class AppController {
       const yt = this.videoService.streamVideo(url, formatId);
       res.setHeader('Content-Type', 'video/mp4');
       res.setHeader('Content-Disposition', `attachment; filename="video.mp4"`);
-      
+
       yt.stdout.pipe(res);
-      
+
       yt.stderr.on('data', (data) => {
         console.error(`yt-dlp error: ${data}`);
       });
 
       yt.on('error', (err) => {
         if (!res.headersSent) {
-          res.status(500).json({ error: 'Failed to start yt-dlp', details: err.message });
+          res
+            .status(500)
+            .json({ error: 'Failed to start yt-dlp', details: err.message });
         }
       });
 
@@ -56,7 +66,9 @@ export class AppController {
         }
       });
     } catch (err: any) {
-      return res.status(500).json({ error: 'Internal server error', details: err.message });
+      return res
+        .status(500)
+        .json({ error: 'Internal server error', details: err.message });
     }
   }
 
